@@ -112,15 +112,22 @@ int main(int argc, char *argv[])
 	page_set_init(&wset, 16);
 	page_set_init(&eset, 1);
 	page_set_clear(&eset);
-			
-	while (lines.len > 16) {
-		line = page_set_remove(&lines, lines.len);
+
+	//srand(0x5770Badd);
+	while (eset.len < 16) {
+		//size_t line_index = rand() % 1024;
+		//printf("index: %zu --", line_index);
+		line = page_set_remove(&lines, 0);
 		page_set_link(&lines, &set, (size_t)target & (4 * KIB - 1));
 
 		if (!prime_and_abort(&set, target)) {
-			page_set_push(&lines, line);
+			if (!page_set_contains(&eset, line)){
+				page_set_push(&eset, line);
+			}
 		}
-		printf("found eviction set of size: %zu\n", lines.len);
+		page_set_push(&lines, line);
+
+		printf("lines set of size: %zu, evict set of size: %zu\n", lines.len, eset.len);
 	}
 
 	page_set_link(&eset, &set, (size_t)target & (4 * KIB - 1));

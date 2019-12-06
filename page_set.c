@@ -76,6 +76,16 @@ int page_set_push(struct page_set *set, void *line)
 	return 0;
 }
 
+int page_set_contains(struct page_set *set, void *line){
+	for (size_t i = 0; i < set->len; i++){
+		if (set->data[i] == line){
+			return 1;
+		}
+	}
+	return 0;
+}
+
+
 void *page_set_remove(struct page_set *set, size_t index)
 {
 	void *line;
