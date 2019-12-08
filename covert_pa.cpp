@@ -214,13 +214,12 @@ int scan(vector<set<char *>>  e_sets, int index) {
 
 void listen_to(set<char *> e_set, int index) {
 	char *pattern;
-
+	char result;
 	while(1) {	
 		pattern = prime_on(e_set, index, 100);
-		printf("%s\n", pattern);
-		if (strcmp(pattern, low_pattern) == 0) {
-			// return slice;
-		}
+		if (strcmp(pattern, low_pattern) == 0)	result = '0';
+		else 																		result = '1';
+		printf("%c", result);
 	}
 }
 
