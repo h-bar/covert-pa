@@ -108,6 +108,9 @@ int conflict_test(char ***addrs, int naddr, int ntries) {
 
 #define page_size 	(2 * MIB)
 
+
+#define low_pattern "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+
 char ** construct_addrs(set<char *> addr_set, int index = 0) {
 	char **addrs = (char **)malloc(addr_set.size() * sizeof(char *));
 
@@ -177,22 +180,46 @@ vector<set<char *>> build_esets(set<char *> o_set) {
 	return e_sets;
 }
 
-void send_to(set<char *> e_set, int index, int slice, int nrepeats = 1) {
+char *prime_on(set<char *> e_set, int index, int nrepeats = 1) {
 	char **e_addrs = construct_addrs(e_set, index);
+	char *pattern = (char *)malloc((nrepeats+1) * sizeof(char));
+	int rate;
+	int limit = nrepeats +1;
 	int count = 0;
 	while (count < nrepeats | nrepeats == 0) {
-		int rate = (int)(prime_test(&e_addrs, _nways, 10000) * 10);
-		printf("Peeking on slice %d -> %0*d\n", slice, rate, 0);
-		count ++;
+		rate = (int)(prime_test(&e_addrs, _nways, 1000) * 10);
+		if (rate > 3) pattern[count] = '1';
+		else 					pattern[count] = '0';
+		count = (count + 1) % limit;
+	}
+	pattern[limit-1] = '\0';
+	return pattern;
+}
+
+int scan(vector<set<char *>>  e_sets, int index) {
+	char *pattern;
+	int slice;
+
+	while(1) {	
+		for (int slice = 0; slice < e_sets.size(); ++slice) {
+			printf("Scanning on slice %d\t-> ", slice);
+			pattern = prime_on(e_sets[slice], index, 100);
+			printf("%s\n", pattern);
+			if (strcmp(pattern, low_pattern) == 0) {
+				return slice;
+			}
+		}
 	}
 }
 
-void scan(vector<set<char *>>  e_sets, int index) {
-	while(1) {
-		int i = 0;
-		for (auto it = e_sets.begin(); it != e_sets.end(); ++it) {
-			send_to(*it, index, i, 5000);
-			i++;
+void listen_to(set<char *> e_set, int index) {
+	char *pattern;
+
+	while(1) {	
+		pattern = prime_on(e_set, index, 100);
+		printf("%s\n", pattern);
+		if (strcmp(pattern, low_pattern) == 0) {
+			// return slice;
 		}
 	}
 }
@@ -227,9 +254,11 @@ int main(int argc, char *argv[]) {
 	
 
 	if (strcmp(argv[1], "server") == 0) {
-		scan(e_sets, index);	
+		int slice = scan(e_sets, index);
+		printf("Signal recieved! Start listening on slices %d\n", slice);
+		listen_to(e_sets[slice], index);
 	} else if (strcmp(argv[1], "client") == 0) {
-		send_to(e_sets[0], index, 0, 0);
+		prime_on(e_sets[0], index, 0);
 	} else {
 		printf("usage: %s [server|client]\n", argv[0]);
 		return -1;
