@@ -33,8 +33,9 @@ int scan(vector<set<char *>>  e_sets, int index) {
 void listen_to(set<char *> e_set, int index) {
 	char *pattern;
 	char result;
+	
+	char **e_addrs = construct_addrs(e_set, index);
 	while(1) {	
-		char **e_addrs = construct_addrs(e_set, index);
 		pattern = prime_on(&e_addrs, 100);
 		if (strcmp(pattern, low_pattern) == 0)	result = '0';
 		else 																		result = '1';
