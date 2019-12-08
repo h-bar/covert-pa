@@ -1,1 +1,1 @@
-g++ -o ./build/covert_pa -mrtm covert_pa.cpp
+g++ -o covert_pa -mrtm ../covert_pa.cpp
