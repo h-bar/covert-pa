@@ -189,26 +189,23 @@ vector<set<char *>> build_esets(set<char *> o_set) {
 	return e_sets;
 }
 
-void listen_on(char ***e_addrs) {
-	while(1) {
-		int rate = (int)(prime_test(e_addrs, _nways, 1000) * 10);
-		printf("%0*d\n", rate, 0);
+void send_to(set<char *> e_set, int index, int slice, int nrepeats = 1) {
+	char **e_addrs = construct_addrs(e_set, index);
+	int count = 0;
+	while (count < nrepeats | nrepeats == 0) {
+		int rate = (int)(prime_test(&e_addrs, _nways, 10000) * 10);
+		printf("Peeking on slice %d -> %0*d\n", slice, rate, 0);
+		count ++;
 	}
 }
 
-void send_to(char ***e_addrs_0, char ***e_addrs_1) {	
-	int count = 0;
-	int timer = 1;
-	while(timer != 50) {
-		while (count < 1000) {
-			prime_test(e_addrs_0, _nways, 1000);
-			count ++;
+void scan(vector<set<char *>>  e_sets, int index) {
+	while(1) {
+		int i = 0;
+		for (auto it = e_sets.begin(); it != e_sets.end(); ++it) {
+			send_to(*it, index, i, 5000);
+			i++;
 		}
-		while (count >= 0) {
-			prime_test(e_addrs_1, _nways, 1000);
-			count --;
-		}
-		timer ++;
 	}
 }
 
@@ -240,20 +237,11 @@ int main(int argc, char *argv[]) {
 		e_sets = build_esets(o_set);
 	}
 	
-	char **e_addr_0 = construct_addrs(e_sets[0], index);
-	char **e_addr_1 = construct_addrs(e_sets[1], index);
 
 	if (strcmp(argv[1], "server") == 0) {
-		printf("Start listening on cache index %d", index);
-		listen_on(&e_addr_0);	
+		scan(e_sets, index);	
 	} else if (strcmp(argv[1], "client") == 0) {
-		send_to(&e_addr_0, &e_addr_1);
-	} else if (strcmp(argv[1], "slice_broadcast") == 0) {
-		for (auto it = e_sets.begin(); it != e_sets.end(); ++it) {
-			e_addr_0 = construct_addrs(*it, index);
-			e_addr_1 = construct_addrs(*(++it), index);
-			send_to(&e_addr_0, &e_addr_1);
-		}
+		send_to(e_sets[0], index, 0, 0);
 	} else {
 		printf("usage: %s [server|client]\n", argv[0]);
 		return -1;
