@@ -56,11 +56,16 @@ int scan(int index) {
 	return slice;
 }
 
+int server_cb(bitset<window_size> &pattern) {
+	printf("%s\n", pattern.to_string().c_str());
+	return 1;
+}
+
 int server(int index) {
 	e_sets = esets();
 	int slice = scan(index);
 	printf("Signal detected! Start listening on slices %d\n", slice);
-	// monitor(e_sets[slice], index, 0);
+	monitor(e_sets[slice], index, 0, *server_cb);
 }
 
 int client(int index) {
