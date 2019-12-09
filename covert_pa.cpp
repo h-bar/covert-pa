@@ -5,41 +5,44 @@
 #include <set>
 #include <vector>
 #include <algorithm>
+#include <bitset>
 
 #include "prime.cpp"
 #include "eset.cpp"
 
 using namespace std;
 
-#define low_pattern "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
 
-int scan(vector<set<char *>>  e_sets, int index) {
-	char *pattern;
-	int slice;
+bitset<window_size> low_pattern(0);
 
-	while(1) {	
-		for (int slice = 0; slice < e_sets.size(); ++slice) {
-			printf("Scanning on slice %d\t-> ", slice);
-			char **e_addrs = construct_addrs(e_sets[slice], index);
-			pattern = prime_on(&e_addrs, 100);
-			printf("%s\n", pattern);
-			if (strcmp(pattern, low_pattern) == 0) {
-				return slice;
-			}
+void sample(char ***e_addrs, bitset<window_size> *pattern_p) {
+		*pattern_p <<= 1;
+		if ((int)(prime_rate(e_addrs, _nways, sample_size) * 10) > h_threshold) {
+			pattern_p->set(0, 1);
+		} else {
+			pattern_p->set(0, 0);
 		}
+}
+
+void monitor(set<char *> e_set, int index, int time, bitset<window_size> *pattern_p) {
+	int timer = 0;
+	char **e_addrs = construct_addrs(e_set, index);
+
+	while (timer < time || time == 0) {
+		sample(&e_addrs, pattern_p);
+		timer++;
 	}
 }
 
-void listen_to(set<char *> e_set, int index) {
-	char *pattern;
-	char result;
-	
-	char **e_addrs = construct_addrs(e_set, index);
+int scan(vector<set<char *>>  e_sets, int index, bitset<window_size> *pattern_p) {
 	while(1) {	
-		pattern = prime_on(&e_addrs, 100);
-		if (strcmp(pattern, low_pattern) == 0)	result = '0';
-		else 																		result = '1';
-		printf("%c", result);
+		for (int slice = 0; slice < e_sets.size(); ++slice) {
+			printf("Scanning on slice %d\n", slice);
+			monitor(e_sets[slice], index, scan_time, pattern_p);
+			if ((*pattern_p) == low_pattern) {
+				return slice;
+			}
+		}
 	}
 }
 
@@ -58,11 +61,12 @@ int main(int argc, char *argv[]) {
 	}
 
   vector<set<char *>> e_sets = esets(npages);
+	bitset<window_size> pattern(0);
 
 	if (strcmp(argv[1], "server") == 0) {
-		int slice = scan(e_sets, index);
+		int slice = scan(e_sets, index, &pattern);
 		printf("Signal recieved! Start listening on slices %d\n", slice);
-		listen_to(e_sets[slice], index);
+		monitor(e_sets[slice], index, 0, &pattern);
 	} else if (strcmp(argv[1], "client") == 0) {
 		char **e_addrs = construct_addrs(e_sets[0], index);
 		prime_on(&e_addrs, 0);

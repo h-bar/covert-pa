@@ -17,4 +17,10 @@
 
 #define page_size 	(2 * MIB)
 
+
+#define window_size 1000
+#define sample_size 100
+#define h_threshold 1
+#define scan_time 1000
+
 #endif
