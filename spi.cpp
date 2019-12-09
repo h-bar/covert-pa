@@ -12,6 +12,9 @@
 #include "prime.cpp"
 #include "eset.cpp"
 
+#define pull_down 	pa_prime(*e_addrs, _nways)
+#define pull_up			for(int i = 0; i < 26; i++) {}
+
 using namespace std;
 
 atomic_flag ticking = ATOMIC_FLAG_INIT;
@@ -69,9 +72,6 @@ int print_cb(bitset<window_size> &pattern,  int timer) {
 	return 1;
 }
 
-int pull_down(char ***e_addrs, bitset<window_size> *pattern) { sample(e_addrs, pattern); }
-int pull_up(char ***e_addrs, bitset<window_size> *pattern) {}
-
 void clocking(char ***e_addrs) {
 	int count = 0;
 	int half_clock_cycle = clock_cycle / 2;
@@ -79,11 +79,11 @@ void clocking(char ***e_addrs) {
 
 	while(1) {
 		while (count < half_clock_cycle) {
-			pa_prime(*e_addrs, _nways);
+			pull_down;
 			count++;
 		}
 		while (count >= 0) {
-			for(int i = 0; i < 26; i++) {}
+			pull_up;
 			count--;
 		}
 		ticking.clear();
