@@ -16,11 +16,11 @@
 #define way_size 		(cache_size / nslices / nways)
 
 #define page_size 	(2 * MIB)
-
+#define npages      8
 
 #define window_size 1000
 #define sample_size 100
 #define h_threshold 1
-#define scan_time 1000
+#define scan_time   1000
 
 #endif

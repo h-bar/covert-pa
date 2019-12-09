@@ -26,7 +26,7 @@ char ** construct_addrs(set<char *> addr_set, int index = 0) {
 	return addrs;
 }
 
-int init_page_array(char **page_array, int npages) {
+int init_page_array(char **page_array) {
 	if ((*page_array = (char *)mmap(NULL, npages * page_size, PROT_READ | PROT_WRITE,
 		MAP_PRIVATE | MAP_HUGETLB | MAP_ANONYMOUS, -1, 0)) == MAP_FAILED) {
 		printf("error: unable to map target page\n");
@@ -35,7 +35,7 @@ int init_page_array(char **page_array, int npages) {
 	memset(*page_array, 0x5b, npages * page_size);
 }
 
-set<char *> creat_addr_set(char *&page_array, int npages) {
+set<char *> creat_addr_set(char *&page_array) {
 	int naddrs = npages * page_size / way_size;
 	set<char *> addr_set;
 	for (int i = 0; i < naddrs; ++i) {
@@ -83,10 +83,10 @@ vector<set<char *>> build_esets(set<char *> o_set) {
 	return e_sets;
 }
 
-vector<set<char *>> esets(int npages) {
+vector<set<char *>> esets() {
  char *pages;	
-	init_page_array(&pages, npages);
-	set<char *> o_set = creat_addr_set(pages, npages);
+	init_page_array(&pages);
+	set<char *> o_set = creat_addr_set(pages);
 	
 	char **o_addrs = construct_addrs(o_set);
 	if (!conflict_test(&o_addrs, o_set.size(), 100000)) {
