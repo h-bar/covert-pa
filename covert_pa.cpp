@@ -16,13 +16,14 @@ using namespace std;
 bitset<window_size> low_pattern(0);
 vector<set<char *>> e_sets;
 
+
+int decode_rate(float rate, int prev_v) {
+	return (prev_v == 1 && rate > l_thre) || (prev_v == 0 && rate > h_thre);
+}
+
 void sample(char ***e_addrs, bitset<window_size> *pattern_p) {
 		*pattern_p <<= 1;
-		if (prime_rate(e_addrs, _nways, sample_size) * 10 > h_threshold) {
-			pattern_p->set(0, 1);
-		} else {
-			pattern_p->set(0, 0);
-		}
+		(*pattern_p)[0] = decode_rate(prime_rate(e_addrs, _nways, sample_size), (*pattern_p)[1]);
 }
 
 int monitor(set<char *> e_set, int index, int time, int (*cb)(bitset<window_size> &pattern)) {

@@ -20,7 +20,9 @@
 
 #define window_size 1000
 #define sample_size 100
-#define h_threshold 1
 #define scan_time   1000
+
+#define l_thre      0.1
+#define h_thre      0.4
 
 #endif
