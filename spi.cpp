@@ -11,11 +11,7 @@
 #include "eset.cpp"
 
 using namespace std;
-
-
-bitset<window_size> low_pattern(0);
 vector<set<char *>> e_sets;
-
 
 int decode_rate(float rate, int prev_v) {
 	return (prev_v == 1 && rate > l_thre) || (prev_v == 0 && rate > h_thre);
@@ -40,12 +36,12 @@ int monitor(set<char *> e_set, int index, int time, int (*cb)(bitset<window_size
 	return 0;
 }
 
-int scan_cb(bitset<window_size> &pattern) {
-	if (pattern == low_pattern) {
-		return 0;
-	}
-	return 1;
-}
+// int scan_cb(bitset<window_size> &pattern) {
+// 	if (pattern == l) {
+// 		return 0;
+// 	}
+// 	return 1;
+// }
 
 int scan(int index) {
 	int slice = 0;
@@ -76,23 +72,25 @@ int client(int index) {
 }
 
 int help() {
-	printf("usage: covert-pa [server|client] index\n");
+	printf("usage: uart-pa clk-index gnd-index mosi-index miso-index\n");
 	exit(1);
 }
 
 int main(int argc, char *argv[]) {
-	int index = 1;
-	if (argc < 2) help();
-	else if (argc == 3) {
-		index = atoi(argv[2]);
-		if (index == 0) {
-			printf("index 0 is reseverd for building confliction set, using default index: 3\n");
-		}
+	if (argc < 6) help();
+	
+	int clk = atoi(argv[1]);
+	int gnd = atoi(argv[2]);
+	int mosi = atoi(argv[3]);
+	int miso = atoi(argv[4]);
+		
+	if (clk == 0 || gnd == 0 || mosi == 0 || miso == 0) {
+		printf("index 0 is reseverd for building confliction set\n");
 	}
 
-	if (strcmp(argv[1], "server") == 0) server(index); 
-	else if (strcmp(argv[1], "client") == 0) client(index);
-	else help();
+	// if (strcmp(argv[1], "server") == 0) server(index); 
+	// else if (strcmp(argv[1], "client") == 0) client(index);
+	// else help();
 
 	return 0;
 }
