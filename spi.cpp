@@ -6,12 +6,20 @@
 #include <vector>
 #include <algorithm>
 #include <bitset>
+#include <atomic> 
+#include <thread>
 
 #include "prime.cpp"
 #include "eset.cpp"
 
 using namespace std;
+
+atomic_flag ticking = ATOMIC_FLAG_INIT;
+bitset<window_size> l(0);
 vector<set<char *>> e_sets;
+	
+int clk, gnd, mosi, miso;
+char **clk_addrs, **gnd_addrs, **mosi_addrs, **miso_addrs;
 
 int decode_rate(float rate, int prev_v) {
 	return (prev_v == 1 && rate > l_thre) || (prev_v == 0 && rate > h_thre);
@@ -22,26 +30,27 @@ void sample(char ***e_addrs, bitset<window_size> *pattern_p) {
 		(*pattern_p)[0] = decode_rate(prime_rate(e_addrs, _nways, sample_size), (*pattern_p)[1]);
 }
 
-int monitor(set<char *> e_set, int index, int time, int (*cb)(bitset<window_size> &pattern)) {
+
+int monitor(set<char *> e_set, int index, int time, int (*cb)(bitset<window_size> &pattern, int timer)) {
 	int timer = 0;
 	bitset<window_size> pattern(0);
 	char **e_addrs = construct_addrs(e_set, index);
 
 	while (timer < time || time == 0) {
 		sample(&e_addrs, &pattern);
-		if (!cb(pattern)) return 1;
+		if (!cb(pattern, timer)) return 1;
 		timer++;
 	}
 
 	return 0;
 }
 
-// int scan_cb(bitset<window_size> &pattern) {
-// 	if (pattern == l) {
-// 		return 0;
-// 	}
-// 	return 1;
-// }
+int scan_cb(bitset<window_size> &pattern, int timer) {
+	if (pattern == l) {
+		return 0;
+	}
+	return 1;
+}
 
 int scan(int index) {
 	int slice = 0;
@@ -53,44 +62,80 @@ int scan(int index) {
 	return slice;
 }
 
-int server_cb(bitset<window_size> &pattern) {
-	printf("%s\n", pattern.to_string().c_str());
+int print_cb(bitset<window_size> &pattern,  int timer) {
+	if (timer % 2000 == 0) {
+		printf("%s\n", pattern.to_string().c_str());
+	}
 	return 1;
 }
 
-int server(int index) {
-	e_sets = esets();
-	int slice = scan(index);
-	printf("Signal detected! Start listening on slices %d\n", slice);
-	monitor(e_sets[slice], index, 0, *server_cb);
+int pull_down(char ***e_addrs, bitset<window_size> *pattern) { sample(e_addrs, pattern); }
+int pull_up(char ***e_addrs, bitset<window_size> *pattern) {}
+
+void clocking(char ***e_addrs) {
+	int count = 0;
+	int half_clock_cycle = clock_cycle / 2;
+	printf("Clock started on index %d\n", clk);
+
+	while(1) {
+		while (count < half_clock_cycle) {
+			pa_prime(*e_addrs, _nways);
+			count++;
+		}
+		while (count >= 0) {
+			for(int i = 0; i < 26; i++) {}
+			count--;
+		}
+		ticking.clear();
+	}
 }
 
-int client(int index) {
+int master() {
 	e_sets = esets();
-	char **e_addrs = construct_addrs(e_sets[0], index);
-	prime_on(&e_addrs, 0);
+
+	clk_addrs = construct_addrs(e_sets[0], clk);
+	gnd_addrs = construct_addrs(e_sets[0], gnd);
+	mosi_addrs = construct_addrs(e_sets[0], mosi);
+	miso_addrs = construct_addrs(e_sets[0], miso);
+
+	std::thread clock_thread (clocking, &clk_addrs);
+	int count = 0;
+	while (1) {
+		while(ticking.test_and_set()) {
+			
+		}
+		count++;
+		printf("A clock tick \n");
+	}
+}
+
+int slave() {
+	e_sets = esets();
+	int slice = scan(clk);
+	printf("Clock signal found on\n");
+	monitor(e_sets[slice], clk, 0, print_cb);
 }
 
 int help() {
-	printf("usage: uart-pa clk-index gnd-index mosi-index miso-index\n");
+	printf("usage: uart-pa [master|slave] clk-index gnd-index mosi-index miso-index\n");
 	exit(1);
 }
 
 int main(int argc, char *argv[]) {
-	if (argc < 6) help();
+	// if (argc < 6) help();
 	
-	int clk = atoi(argv[1]);
-	int gnd = atoi(argv[2]);
-	int mosi = atoi(argv[3]);
-	int miso = atoi(argv[4]);
+	clk = atoi(argv[2]);
+	// gnd = atoi(argv[3]);
+	// mosi = atoi(argv[4]);
+	// miso = atoi(argv[5]);
 		
 	if (clk == 0 || gnd == 0 || mosi == 0 || miso == 0) {
 		printf("index 0 is reseverd for building confliction set\n");
 	}
 
-	// if (strcmp(argv[1], "server") == 0) server(index); 
-	// else if (strcmp(argv[1], "client") == 0) client(index);
-	// else help();
+	if (strcmp(argv[1], "master") == 0) master(); 
+	else if (strcmp(argv[1], "slave") == 0) slave();
+	else help();
 
 	return 0;
 }

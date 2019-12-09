@@ -25,4 +25,5 @@
 #define l_thre      0.1
 #define h_thre      0.4
 
+#define clock_cycle 1000
 #endif

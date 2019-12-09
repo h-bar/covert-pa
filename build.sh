@@ -1,1 +1,1 @@
-g++ -o spi -mrtm ../spi.cpp
+g++ -o spi ../spi.cpp -mrtm -pthread 
