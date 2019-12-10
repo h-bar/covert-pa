@@ -71,8 +71,8 @@ int server(int index) {
 
 int client(int index) {
 	e_sets = esets();
-	char **e_addrs = construct_addrs(e_sets[0], index);
-	prime_on(&e_addrs, 0);
+	//char **e_addrs = construct_addrs(e_sets[0], index);
+	//prime_on(&e_addrs, 0);
 }
 
 int help() {

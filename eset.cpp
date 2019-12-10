@@ -6,6 +6,7 @@
 
 #include <set>
 #include <vector>
+#include <iostream>
 
 #include "prime.cpp"
 #include "config.h"
@@ -59,40 +60,46 @@ int conflict_test(char ***addrs, int naddr, int ntries) {
 }
 
 vector<set<char *>> build_esets(set<char *> o_set) {
-	set<char *> c_set;
+	
+	//set<char *>::iterator itr;
+	set<char *> c_set = o_set;
+	set<char *> target_set;
 	vector<set<char *>> e_sets = vector<set<char *>>();
-	while (e_sets.size() < nslices) {
+	while ( 1 ) {
 		// printf("Testing use working set of size %ld\n", c_set.size());
 		char **w_addrs = construct_addrs(o_set);
-		int naddr = o_set.size();
+		int naddr = c_set.size();
 		// find conflict set in one slice
 		for (int i = 0; i < naddr; ++i) {
-			o_set.erase(w_addrs[i]);
+			auto itr = c_set.begin();
+			c_set.erase(w_addrs[i]);
 
 			char **c_addrs = construct_addrs(c_set);
 			if (!conflict_test(&c_addrs, c_set.size(), 1000)) {
 				// if the erased address is committed
 				// add it back to the conflict set
-				c_set.insert(w_addrs[i]);
-				o_set.insert(w_addrs[i]);
+				target_set.insert( w_addrs[i] );
+				c_set.insert( w_addrs[i] );
 			}
-			
 		}
 		// if none of the address is conflicted, 
 		// which means we got all the conflict set, break.
-		// if (c_set.size() == naddr) break;
+		//printf("c_set: %zu, target_set: %zu, e_set: %zu, naddr: %d\n", c_set.size(), target_set.size(), e_sets.size(), naddr);
+		if (c_set.size() == naddr) break;
 
-		char **c_addrs = construct_addrs(c_set);
-		if (!conflict_test(&c_addrs, c_set.size(), 10)) { continue; }
-		
-		e_sets.push_back(c_set);
-		// remove the found address of one slice to find the rest slices
+		char **target = construct_addrs(target_set);
+		if (!conflict_test(&target, target_set.size(), 100)) { continue; }
+
+		e_sets.push_back(target_set);
+
+		//remove the found address of one slice to find the rest slices
 		for (auto o_it = o_set.begin(); o_it != o_set.end(); ++o_it) {
-			for (auto w_it = c_set.begin(); w_it != c_set.end(); ++w_it) {
-				if (*o_it == *w_it) o_set.erase(*w_it);
+			for (auto w_it = target_set.begin(); w_it != target_set.end(); ++w_it) {
+				if (*o_it == *w_it) o_set.erase(*w_it); 
 			}
 		}
-		//c_set = o_set;
+		c_set = o_set;
+		target_set.clear();
 	}
 	printf("Found %ld eviction sets!\n", e_sets.size());
 	return e_sets;
