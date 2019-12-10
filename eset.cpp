@@ -47,18 +47,18 @@ set<char *> creat_addr_set(char *&page_array) {
 
 
 
-vector<set<char *>> build_esets(set<char *> o_set) {
+vector<set<char *>> build_esets(set<char *> o_set, int index) {
 	set<char *> c_set = o_set;
 	vector<set<char *>> e_sets = vector<set<char *>>();
 	while (1) {
 		// printf("Testing use working set of size %ld\n", c_set.size());
-		char **w_addrs = construct_addrs(c_set, 0);
+		char **w_addrs = construct_addrs(c_set, index);
 		int naddr = c_set.size();
 
 		for (int i = 0; i < naddr; ++i) {
 			c_set.erase(w_addrs[i]);
 
-			char **c_addrs = construct_addrs(c_set, 0);
+			char **c_addrs = construct_addrs(c_set, index);
 			if (!conflict_test(&c_addrs, c_set.size(), 1000)) {
 				c_set.insert(w_addrs[i]);
 			}
@@ -67,7 +67,7 @@ vector<set<char *>> build_esets(set<char *> o_set) {
 
 		if (c_set.size() == naddr) break;
 
-		char **c_addrs = construct_addrs(c_set, 0);
+		char **c_addrs = construct_addrs(c_set, index);
 		if (!conflict_test(&c_addrs, c_set.size(), 100000)) { continue; }
 		// printf("Found conflict set of size %ld\n", c_set.size());
 		e_sets.push_back(c_set);
@@ -83,19 +83,19 @@ vector<set<char *>> build_esets(set<char *> o_set) {
 	return e_sets;
 }
 
-vector<set<char *>> esets() {
+vector<set<char *>> esets(int index = 0) {
  char *pages;	
 	init_page_array(&pages);
 	set<char *> o_set = creat_addr_set(pages);
 	
-	char **o_addrs = construct_addrs(o_set, 0);
+	char **o_addrs = construct_addrs(o_set, index);
 	if (!conflict_test(&o_addrs, o_set.size(), 100000)) {
 		printf("Original set is not a conflict set"); 
 	}
 
 	vector<set<char *>> e_sets = vector<set<char *>>();
 	while(e_sets.size() != nslices) {
-		e_sets = build_esets(o_set);
+		e_sets = build_esets(o_set, index);
 	}
 
 	return e_sets;
