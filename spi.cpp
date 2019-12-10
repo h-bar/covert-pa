@@ -49,6 +49,34 @@ int monitor(set<char *> e_set, int index, int time, int (*cb)(bitset<window_size
 	return 0;
 }
 
+
+// int scan(int index) {
+// 	printf("Scanning all slices for low signals on index %d\n", index);
+// 	thread scan_threads[e_sets.size()];
+// 	bitset<window_size> steams[e_sets.size()];
+// 	int stop = 0;
+// 	for (int i = 0; i < e_sets.size(); i++) {
+// 		char **e_addrs = construct_addrs(e_sets[i], index);
+// 		steams[i] = bitset<window_size>(0);
+// 		scan_threads[i] = thread(monitor, &e_addrs, clk, &(steams[i]), &stop);
+// 	}
+
+// 	int slice;
+// 	while (1) {
+// 		for (slice = 0; slice < e_sets.size(); slice++) {
+// 			if (steams[slice] == l) {
+// 				// stop = 1;
+// 				for (int i = 0; i < e_sets.size(); i++) {
+// 					scan_threads[i].join();
+// 				}
+// 				return slice;
+// 			}
+// 		}
+// 	}
+
+// }
+
+
 int scan_cb(bitset<window_size> &pattern, int timer) {
 	if (pattern == l) {
 		return 0;
@@ -71,6 +99,19 @@ int print_cb(bitset<window_size> &pattern,  int timer) {
 		printf("%s\n", pattern.to_string().c_str());
 	}
 	return 1;
+}
+
+
+int sample(char ***e_addrs, int prev_v) {
+		return decode_rate(prime_rate(e_addrs, _nways, sample_size), prev_v);
+}
+
+
+void monitor_asyc(char ***e_addrs, int *stop, bitset<window_size> *bitstream) {
+	while(*stop == 0) {
+		(*bitstream) <<= 1;
+		(*bitstream)[0] = sample(e_addrs, (*bitstream)[1]);
+	}
 }
 
 void clocking(char ***e_addrs) {
@@ -99,7 +140,7 @@ int master() {
 	mosi_addrs = construct_addrs(e_sets[0], mosi);
 	miso_addrs = construct_addrs(e_sets[0], miso);
 
-	std::thread clock_thread (clocking, &clk_addrs);
+	thread clock_thread (clocking, &clk_addrs);
 	int count = 0;
 	while (1) {
 		while(ticking.test_and_set()) {
@@ -113,8 +154,19 @@ int master() {
 int slave() {
 	e_sets = esets();
 	int slice = scan(clk);
-	printf("Clock signal found on\n");
-	monitor(e_sets[slice], clk, 0, print_cb);
+
+	printf("Clock signal found on slice %d\n", slice);
+	
+	clk_addrs = construct_addrs(e_sets[slice], clk);
+	gnd_addrs = construct_addrs(e_sets[slice], gnd);
+	mosi_addrs = construct_addrs(e_sets[slice], mosi);
+	miso_addrs = construct_addrs(e_sets[slice], miso);
+	
+	bitset<window_size> clock_stream(0);
+	int stop;
+	thread clock_thread (monitor_asyc, &clk_addrs, &stop, &clock_stream);
+	clock_thread.join();
+	// monitor(e_sets[slice], clk, 0, print_cb);
 }
 
 int help() {

@@ -73,8 +73,8 @@ vector<set<char *>> build_esets(set<char *> o_set) {
 		e_sets.push_back(c_set);
 		
 		for (auto o_it = o_set.begin(); o_it != o_set.end(); ++o_it) {
-			for (auto w_it = c_set.begin(); w_it != c_set.end(); ++w_it) {
-				if (*o_it == *w_it) o_set.erase(*w_it);
+			for (auto c_it = c_set.begin(); c_it != c_set.end(); ++c_it) {
+				if (*o_it == *c_it) o_set.erase(*c_it);
 			}
 		}
 		c_set = o_set;
