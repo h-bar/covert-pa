@@ -42,15 +42,6 @@ float prime_rate(char ***addrs, int naddr, int ntries) {
 	return rate;
 }
 
-int conflict_test(char ***addrs, int naddr, int ntries) {
-	for (int i = 0; i < ntries; ++i) {
-		if (pa_prime(*addrs, naddr)) {
-			return 0;
-		}
-	}
-	return 1;
-}
-
 char *prime_on(char *** e_addrs, int nrepeats = 1) {
 	// char **e_addrs = construct_addrs(e_set, index);
 	char *pattern = (char *)malloc((nrepeats+1) * sizeof(char));
