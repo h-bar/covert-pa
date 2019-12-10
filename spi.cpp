@@ -132,6 +132,13 @@ void clocking(char ***e_addrs) {
 	}
 }
 
+void gound(char ***e_addrs) {
+	printf("GND signal started on index %d\n", gnd);
+	while (1) {
+		pull_down;
+	}
+}
+
 int master() {
 	e_sets = esets();
 
@@ -140,7 +147,9 @@ int master() {
 	mosi_addrs = construct_addrs(e_sets[0], mosi);
 	miso_addrs = construct_addrs(e_sets[0], miso);
 
-	thread clock_thread (clocking, &clk_addrs);
+	
+	thread gnd_generator (gound, &gnd_addrs);
+	thread clock_generator (clocking, &clk_addrs);
 	int count = 0;
 	while (1) {
 		while(ticking.test_and_set()) {
@@ -178,7 +187,7 @@ int main(int argc, char *argv[]) {
 	// if (argc < 6) help();
 	
 	clk = atoi(argv[2]);
-	// gnd = atoi(argv[3]);
+	gnd = atoi(argv[3]);
 	// mosi = atoi(argv[4]);
 	// miso = atoi(argv[5]);
 		
