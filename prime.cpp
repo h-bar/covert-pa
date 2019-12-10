@@ -51,14 +51,14 @@ int conflict_test(char ***addrs, int naddr, int ntries) {
 	return 1;
 }
 
-char *prime_on(char *** e_addrs, int nrepeats = 1) {
+char *prime_on(char *** e_addrs, int naddr, int nrepeats = 1) {
 	// char **e_addrs = construct_addrs(e_set, index);
 	char *pattern = (char *)malloc((nrepeats+1) * sizeof(char));
 	int rate;
 	int limit = nrepeats +1;
 	int count = 0;
 	while (count < nrepeats | nrepeats == 0) {
-		rate = (int)(prime_rate(e_addrs, _nways, 1000) * 10);
+		rate = (int)(prime_rate(e_addrs, naddr, 1000) * 10);
 		if (rate > 3) pattern[count] = '1';
 		else 					pattern[count] = '0';
 		count = (count + 1) % limit;
