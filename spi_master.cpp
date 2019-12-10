@@ -12,7 +12,8 @@
 #include "prime.cpp"
 #include "eset.cpp"
 
-#define clock_cycle 150	
+// #define clock_cycle 150	
+#define clock_cycle 1500000	
 #define _nways			12
 
 using namespace std;

@@ -15,9 +15,11 @@
 using namespace std;
 
 
+// #define window_size 2
+#define window_size 200
+
 #define buffer_size 200
 #define sample_size 10
-#define window_size 2
 #define scan_time   1000
 #define l_thre      0.05
 #define h_thre      0.4
