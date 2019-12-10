@@ -18,7 +18,8 @@
 using namespace std;
 
 atomic_flag ticking = ATOMIC_FLAG_INIT;
-bitset<window_size> l(0);
+
+bitset<window_size> l(string(window_size, '0')), h(string(window_size, '1'));
 vector<set<char *>> e_sets;
 	
 int clk, gnd, mosi, miso;
