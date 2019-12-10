@@ -17,12 +17,12 @@ using namespace std;
 
 #define buffer_size 200
 #define sample_size 10
-#define window_size 6
+#define window_size 2
 #define scan_time   1000
-#define l_thre      0.1
+#define l_thre      0.05
 #define h_thre      0.4
 
-#define _nways			10
+#define _nways			12
 
 #define pull_down 	pa_prime(*e_addrs, _nways)
 #define pull_up			for(int i = 0; i < 26; i++) {}
@@ -41,10 +41,9 @@ char **clk_addrs, **gnd_addrs, **mosi_addrs, **miso_addrs;
 
 int sample(char ***e_addrs, int prev_v) {
 		float rate = prime_rate(e_addrs, _nways, sample_size);
-
-		if (rate > h_thre) return 1;
-		if (rate < l_thre) return 0;
-		return prev_v;
+		int value = rate >= l_thre;
+		// printf("%f -> %d: %s\n", rate, value, string((int)(rate*10), '=').c_str());
+		return value;
 }
 
 
@@ -79,11 +78,9 @@ int monitor2(set<char *> e_set, int index, int time) {
 		buffer[0] = sample(&e_addrs, buffer[1]);
 
 		float rate = (float)((buffer >> (buffer_size - window_size)).count()) / window_size;
-		// printf("%f\n", rate);
-		if (rate > 0.9) value = 1;
-		else if (rate < 0.1) value = 0;
-		else value = prev_v;
-		// else value = 0;
+		// float rate = (float)((buffer).count()) / buffer_size;
+		value = rate > 0.2;
+		// printf("%f -> %d: %s\n", rate, value, string((int)(rate*10), '=').c_str());
 		
 		if ((prev_v - value) == 1) {
 			printf("A tick at time %d!\n", count);
