@@ -14,11 +14,11 @@
 #include "eset.cpp"
 
 // #define clock_cycle 150	
-#define clock_cycle 1500000000	
+#define clock_cycle 150000000	
 #define _nways			12
 
 
-#define buffer_size 1
+#define buffer_size 3
 #define sample_size 10000
 #define scan_time   1000
 #define l_thre      0.05
@@ -87,7 +87,7 @@ int slave() {
 	vector<set<char *>> e_sets = esets(0);
 	int slice = scan(e_sets, clk);
 
-	printf("Clock signal found on slice %d\n", slice);
+	printf("Master clock signal found on slice %d\n", slice);
 	
 	
 	int clock_value = 1;
@@ -127,25 +127,34 @@ int slave() {
 int master() {
   set<char *> e_set = esets(0)[0];
 
-	int clock_value = 1;
-	int mosi_value = 1;
-	int ss_value = 0;
+	int clock_value = 0;
+	int mosi_value = 0;
+	int ss_value = 1;
 	thread clock_wire(init_wire_out, e_set, clk, &clock_value);
 	thread mosi_wire(init_wire_out, e_set, mosi, &mosi_value);
 	thread ss_wire(init_wire_in, e_set, ss, &ss_value);
+	
 	int count = 0;
+	int half_clock_cycle = clock_cycle / 2;
+	int timeout = 100;
 	while (1) {
-		int half_clock_cycle = clock_cycle / 2;
-		printf("Clock started on index %d\n", clk);
+		printf("Waiting for slave conntction\n");
+		clock_value = 1;
+		while(ss_value) {}
 
-		while(1) {
-			mosi_value = (rand() % 10 > 5 || ss_value);
+		printf("Slave connected, sending message: ");
+		count = 0;
+		while(count < timeout) {
+			if (ss_value) count++;
+			else count == 0;
+			mosi_value = (rand() % 10 > 5);
 			printf("%d", mosi_value);
 			while (count++ < half_clock_cycle) {}
 			clock_value = 1;
 			while (count-- >= 0) {}
 			clock_value = 0;
 		}
+		printf("\nSlave disconnected\n");
 	}
 }
 
