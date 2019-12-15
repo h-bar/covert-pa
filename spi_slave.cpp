@@ -36,6 +36,8 @@ int window_1 = 2^window_size - 1;
 bitset<buffer_size> l(string(buffer_size, '0')), h(string(buffer_size, '1'));
 vector<set<char *>> e_sets;
 	
+atomic_flag ticking = ATOMIC_FLAG_INIT;
+
 int clk, gnd, mosi, miso;
 char **clk_addrs, **gnd_addrs, **mosi_addrs, **miso_addrs;
 
@@ -66,34 +68,24 @@ int monitor(set<char *> e_set, int index, int time) {
 	return 0;
 }
 
-int monitor2(set<char *> e_set, int index, int time) {
-	int timer = 0;
+int clock_monitor(set<char *> e_set, int index) {
 	bitset<buffer_size> buffer(0);
-
 	char **e_addrs = construct_addrs(e_set, index);
 
 	int prev_v = 0;
 	int value = 0;
-	int count = 0;
-	while (timer < time || time == 0) {
+	while (1) {
 		buffer <<= 1;
 		buffer[0] = sample(&e_addrs, buffer[1]);
 
 		float rate = (float)((buffer >> (buffer_size - window_size)).count()) / window_size;
-		// float rate = (float)((buffer).count()) / buffer_size;
 		value = rate > 0.2;
-		// printf("%f -> %d: %s\n", rate, value, string((int)(rate*10), '=').c_str());
 		
 		if ((prev_v - value) == 1) {
-			printf("A tick at time %d!\n", count);
-			count++;
+			ticking.clear();
 		}
 
-		
-
-
 		prev_v = value;
-		timer++;
 	}
 
 	return 0;
@@ -128,7 +120,16 @@ int slave() {
 	mosi_addrs = construct_addrs(e_sets[slice], mosi);
 	miso_addrs = construct_addrs(e_sets[slice], miso);
 	
-	monitor2(e_sets[slice], clk, 0);
+	thread clockline_monitor (clock_monitor, e_sets[slice], clk);
+	int count = 0;
+
+	while (1) {
+		while(ticking.test_and_set()) {
+		
+		}
+		count++;
+		printf("A clock tick at time %d\n", count);
+	}
 }
 
 
