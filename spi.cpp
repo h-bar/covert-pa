@@ -92,8 +92,10 @@ int slave() {
 	
 	int clock_value = 1;
 	int mosi_value = 1;
+	int ss_value = 1;
 	thread clock_wire (init_wire_in, e_sets[slice], clk, &clock_value);
 	thread mosi_wire (init_wire_in, e_sets[slice], mosi, &mosi_value);
+	thread ss_wire(init_wire_out, e_sets[slice], ss, &ss_value);
 	int count = 0;
 	while (1) {
 		bitset<buffer_size> clock_buffer(0);
@@ -130,14 +132,14 @@ int master() {
 	int ss_value = 0;
 	thread clock_wire(init_wire_out, e_set, clk, &clock_value);
 	thread mosi_wire(init_wire_out, e_set, mosi, &mosi_value);
-	thread ss_wire(init_wire_out, e_set, ss, &ss_value);
+	thread ss_wire(init_wire_in, e_set, ss, &ss_value);
 	int count = 0;
 	while (1) {
 		int half_clock_cycle = clock_cycle / 2;
 		printf("Clock started on index %d\n", clk);
 
 		while(1) {
-			mosi_value = (rand() % 10 > 5);
+			mosi_value = (rand() % 10 > 5 || ss_value);
 			printf("%d", mosi_value);
 			while (count++ < half_clock_cycle) {}
 			clock_value = 1;
