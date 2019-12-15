@@ -28,10 +28,8 @@ using namespace std;
 bitset<buffer_size> l(string(buffer_size, '0')), h(string(buffer_size, '1'));
 int clk, ss, mosi, miso;
 
-void pull_down(char ***e_addrs) { pa_prime(*e_addrs, _nways); }
-void pull_up() { for(int i = 0; i < 37; i++) {} }
 
-int sample(char ***e_addrs, int prev_v, int nsample) {
+ int sample(char ***e_addrs, int prev_v, int nsample) {
 		float rate = prime_rate(e_addrs, _nways, nsample);
 		int value = rate >= l_thre;
 		return value;
@@ -76,8 +74,6 @@ void init_wire_out(set<char *> eset, int index, int* value) {
 	while(1) {
 		if (*value == 1) {
 			reading = sample(&e_addrs, reading, sample_size);
-		} else {
-			pull_up();
 		}
 	}
 }
@@ -109,18 +105,13 @@ int slave() {
 		while (1) {
 			clock_buffer <<= 1;
 			clock_buffer[0] = clock_value;
-
 			mosi_buffer <<= 1;
 			mosi_buffer[0] = mosi_value;
-			// printf("%s\n", buffer.to_string().c_str());
+			
 			if (clock_buffer == l) {current_clk = 1;}
 			else if (clock_buffer == h) {current_clk = 0;}
-
-
 			if (mosi_buffer == l) {value_in = 1;}
 			else if (mosi_buffer == h) {value_in = 0;}
-			// float rate = (float)(buffer.count()) / buffer_size;
-			// value = rate > 0.2;
 			
 			if ((prev_clk - current_clk) == -1) {
 				printf("%d", value_in);
