@@ -18,8 +18,8 @@
 #define _nways			12
 
 
-#define buffer_size 20000
-#define sample_size 10
+#define buffer_size 1
+#define sample_size 10000
 #define scan_time   1000
 #define l_thre      0.05
 
@@ -31,8 +31,8 @@ int clk, ss, mosi, miso;
 void pull_down(char ***e_addrs) { pa_prime(*e_addrs, _nways); }
 void pull_up() { for(int i = 0; i < 37; i++) {} }
 
-int sample(char ***e_addrs, int prev_v) {
-		float rate = prime_rate(e_addrs, _nways, sample_size);
+int sample(char ***e_addrs, int prev_v, int nsample) {
+		float rate = prime_rate(e_addrs, _nways, nsample);
 		int value = rate >= l_thre;
 		return value;
 }
@@ -44,7 +44,7 @@ int monitor(set<char *> e_set, int index, int time) {
 
 	while (timer < time || time == 0) {
 		pattern <<= 1;
-		pattern[0] = sample(&e_addrs, pattern[1]);
+		pattern[0] = sample(&e_addrs, pattern[1], 100);
 
 		if (pattern == l) return 1;
 		timer++;
@@ -66,15 +66,16 @@ int scan(vector<set<char *>> e_sets, int index) {
 void init_wire_in(set<char *> e_set, int index, int* value) {
 	char **e_addrs = construct_addrs(e_set, index);
 	while (1) {
-		*value = sample(&e_addrs, *value);
+		*value = sample(&e_addrs, *value, sample_size);
 	}
 }
 
 void init_wire_out(set<char *> eset, int index, int* value) {
 	char **e_addrs = construct_addrs(eset, index);
+	int reading;
 	while(1) {
 		if (*value == 1) {
-			pull_down(&e_addrs);
+			reading = sample(&e_addrs, reading, sample_size);
 		} else {
 			pull_up();
 		}
@@ -145,13 +146,12 @@ int master() {
 		printf("Clock started on index %d\n", clk);
 
 		while(1) {
-			mosi_value = 1;
-			// mosi_value = (rand() % 10 > 5);
-			clock_value = 1;
-			while (count++ < half_clock_cycle) {}
-			clock_value = 0;
-			while (count-- >= 0) {}
+			mosi_value = (rand() % 10 > 5);
 			printf("%d", mosi_value);
+			while (count++ < half_clock_cycle) {}
+			clock_value = 1;
+			while (count-- >= 0) {}
+			clock_value = 0;
 		}
 	}
 }
