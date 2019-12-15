@@ -14,13 +14,15 @@
 #include "eset.cpp"
 
 // #define clock_cycle 150	
-#define clock_cycle 150000000	
-#define nway_in			12
-#define nway_out		2
-
-
+#define clock_cycle 5000000
 #define buffer_size 1
-#define sample_size 10000
+#define sample_size 50000
+
+
+#define nway_in			12
+#define nway_out		12
+
+
 #define scan_time   1000
 #define l_thre      0.05
 
@@ -62,10 +64,10 @@ int scan(vector<set<char *>> e_sets, int index) {
 	return slice;
 }
 
-void init_wire_in(set<char *> e_set, int index, int* value) {
+void init_wire_in(set<char *> e_set, int index, int nsample, int* value) {
 	char **e_addrs = construct_addrs(e_set, index);
 	while (1) {
-		*value = sample(&e_addrs, *value, sample_size);
+		*value = sample(&e_addrs, *value, nsample);
 	}
 }
 
@@ -91,36 +93,46 @@ int slave() {
 	printf("Master clock signal found on slice %d\n", slice);
 	
 	
-	int clock_value = 1;
 	int mosi_value = 1;
 	int ss_value = 1;
-	thread clock_wire (init_wire_in, e_sets[slice], clk, &clock_value);
-	thread mosi_wire (init_wire_in, e_sets[slice], mosi, &mosi_value);
+	int null_value = 1;
+	thread mosi_wire (init_wire_in, e_sets[slice], mosi, sample_size, &mosi_value);
+	thread null_wire (init_wire_in, e_sets[slice], clk+1, sample_size, &null_value);
 	thread ss_wire(init_wire_out, e_sets[slice], ss, &ss_value);
+	
 	int count = 0;
+
+	char **clk_addrs = construct_addrs(e_sets[slice], clk);
+	
+	bitset<buffer_size> clock_buffer(0);
+	bitset<buffer_size> mosi_buffer(0);
+
+	int clock_value = 0;
+	int value_in = 0;
 	while (1) {
-		bitset<buffer_size> clock_buffer(0);
-		bitset<buffer_size> mosi_buffer(0);
-
-		int prev_clk = 0;
-		int current_clk = 0;
-		int value_in = 0;
-		while (1) {
+		while (clock_value == 0) {
 			clock_buffer <<= 1;
-			clock_buffer[0] = clock_value;
-			mosi_buffer <<= 1;
-			mosi_buffer[0] = mosi_value;
+			clock_buffer[0] = sample(&clk_addrs, clock_buffer[1], sample_size);
 			
-			if (clock_buffer == l) {current_clk = 1;}
-			else if (clock_buffer == h) {current_clk = 0;}
-			if (mosi_buffer == l) {value_in = 1;}
-			else if (mosi_buffer == h) {value_in = 0;}
-			
-			if ((prev_clk - current_clk) == -1) {
-				printf("%d", value_in);
-			}
+			clock_value = clock_buffer.count() == 0;
 
-			prev_clk = current_clk;
+			// mosi_buffer <<= 1;
+			// mosi_buffer[0] = mosi_value;
+			// value_in = mosi_buffer.count() == 0;
+			// printf("0");
+		}
+		
+		mosi_buffer <<= 1;
+		mosi_buffer[0] = mosi_value;
+		value_in = mosi_buffer.count() == 0;
+		printf("%d", value_in);
+
+		while (clock_value == 1) {
+			clock_buffer <<= 1;
+			clock_buffer[0] = sample(&clk_addrs, clock_buffer[1], sample_size);
+			clock_value = clock_buffer.count() == 0;
+
+			// printf("1");
 		}
 	}
 }
@@ -128,33 +140,39 @@ int slave() {
 int master() {
   set<char *> e_set = esets(0)[0];
 
-	int clock_value = 0;
 	int mosi_value = 0;
 	int ss_value = 1;
-	thread clock_wire(init_wire_out, e_set, clk, &clock_value);
 	thread mosi_wire(init_wire_out, e_set, mosi, &mosi_value);
-	thread ss_wire(init_wire_in, e_set, ss, &ss_value);
+	thread ss_wire(init_wire_in, e_set, ss, 5000, &ss_value);
 	
+	char **clk_addrs = construct_addrs(e_set, clk);
+	char **null_addrs = construct_addrs(e_set, clk + 2);
 	int count = 0;
 	int timer = 0;
 	int half_clock_cycle = clock_cycle / 2;
 	int timeout = 4;
 	while (1) {
 		printf("Waiting for slave conntction\n");
-		clock_value = 1;
-		while(ss_value) {}
+		while(ss_value) pa_prime(clk_addrs, nway_out);
 
 		printf("Slave connected, sending message: ");
 		timer = 0;
 		while(timer < timeout) {
 			if (ss_value) timer++;
 			else timer = 0;
+
 			mosi_value = (rand() % 10 > 5);
 			printf("%d", mosi_value);
-			while (count++ < half_clock_cycle) {}
-			clock_value = 1;
-			while (count-- >= 0) {}
-			clock_value = 0;
+			
+			count = 0;
+			while (count ++ < half_clock_cycle) {
+				pa_prime(null_addrs, nway_out);
+			}
+			
+			count = 0;
+			while (count ++ < half_clock_cycle) {
+				pa_prime(clk_addrs, nway_out);
+			}
 		}
 		printf("\nSlave disconnected\n");
 	}
