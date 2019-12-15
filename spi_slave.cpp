@@ -14,10 +14,7 @@
 
 using namespace std;
 
-
-// #define window_size 2
-#define window_size 200
-
+// #define buffer_size 2
 #define buffer_size 200
 #define sample_size 10
 #define scan_time   1000
@@ -31,8 +28,6 @@ using namespace std;
 
 
 
-int window_0 = 0;
-int window_1 = 2^window_size - 1;
 bitset<buffer_size> l(string(buffer_size, '0')), h(string(buffer_size, '1'));
 vector<set<char *>> e_sets;
 	
@@ -68,29 +63,6 @@ int monitor(set<char *> e_set, int index, int time) {
 	return 0;
 }
 
-int clock_monitor(set<char *> e_set, int index) {
-	bitset<buffer_size> buffer(0);
-	char **e_addrs = construct_addrs(e_set, index);
-
-	int prev_v = 0;
-	int value = 0;
-	while (1) {
-		buffer <<= 1;
-		buffer[0] = sample(&e_addrs, buffer[1]);
-
-		float rate = (float)((buffer >> (buffer_size - window_size)).count()) / window_size;
-		value = rate > 0.2;
-		
-		if ((prev_v - value) == 1) {
-			ticking.clear();
-		}
-
-		prev_v = value;
-	}
-
-	return 0;
-}
-
 int scan(int index) {
 	int slice = 0;
 	while(!monitor(e_sets[slice], index, scan_time)) {	
@@ -101,12 +73,27 @@ int scan(int index) {
 	return slice;
 }
 
+int clock_monitor(set<char *> e_set, int index) {
+	bitset<buffer_size> buffer(0);
+	char **e_addrs = construct_addrs(e_set, index);
 
-void monitor_asyc(char ***e_addrs, int *stop, bitset<buffer_size> *bitstream) {
-	while(*stop == 0) {
-		(*bitstream) <<= 1;
-		(*bitstream)[0] = sample(e_addrs, (*bitstream)[1]);
+	int prev_v = 0;
+	int value = 0;
+	while (1) {
+		buffer <<= 1;
+		buffer[0] = sample(&e_addrs, buffer[1]);
+
+		float rate = (float)(buffer.count()) / buffer_size;
+		value = rate > 0.2;
+		
+		if ((prev_v - value) == 1) {
+			ticking.clear();
+		}
+
+		prev_v = value;
 	}
+
+	return 0;
 }
 
 int slave() {
