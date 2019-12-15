@@ -14,41 +14,24 @@
 #include "eset.cpp"
 
 // #define clock_cycle 150	
-#define clock_cycle 1500000	
+#define clock_cycle 150000000	
 #define _nways			12
 
 using namespace std;
 
-atomic_flag ticking = ATOMIC_FLAG_INIT;
-
 int clk, gnd, mosi, miso;
-char **clk_addrs, **gnd_addrs, **mosi_addrs, **miso_addrs;
 
 void pull_down(char ***e_addrs) { pa_prime(*e_addrs, _nways); }
 void pull_up() { for(int i = 0; i < 37; i++) {} }
 
-void clocking(char ***e_addrs) {
-	int count = 0;
-	int half_clock_cycle = clock_cycle / 2;
-	printf("Clock started on index %d\n", clk);
-
+void init_wire_out(set<char *> eset, int index, int* value) {
+	char **e_addrs = construct_addrs(eset, index);
 	while(1) {
-		while (count < half_clock_cycle) {
-			pull_down(e_addrs);
-			count++;
-		}
-		while (count >= 0) {
+		if (*value == 1) {
+			pull_down(&e_addrs);
+		} else {
 			pull_up();
-			count--;
 		}
-		ticking.clear();
-	}
-}
-
-void gound(char ***e_addrs) {
-	printf("GND signal started on index %d\n", gnd);
-	while (1) {
-		pull_down(e_addrs);
 	}
 }
 
@@ -60,39 +43,30 @@ int help() {
 int master() {
   vector<set<char *>> e_sets = esets(0);
 
-	clk_addrs = construct_addrs(e_sets[0], clk);
-	gnd_addrs = construct_addrs(e_sets[0], gnd);
-	mosi_addrs = construct_addrs(e_sets[0], mosi);
-	miso_addrs = construct_addrs(e_sets[0], miso);
+	int clock_value = 1;
+	int mosi_value = 1;
+	thread clock_wire(init_wire_out, e_sets[0], clk, &clock_value);
+	thread mosi_wire(init_wire_out, e_sets[0], mosi, &mosi_value);
 
-	
-	// thread gnd_generator (gound, &gnd_addrs);
-	thread clock_generator (clocking, &clk_addrs);
 	int count = 0;
-
-	int value;
-	char **e_addrs = mosi_addrs;
 	while (1) {
-		value = (rand()%10 > 5);
-		printf("%d", value);
-		while(ticking.test_and_set()) {
-			if (value) {
-				pull_down(&mosi_addrs);
-			} else {
-				pull_up();
-			}
+		int half_clock_cycle = clock_cycle / 2;
+		printf("Clock started on index %d\n", clk);
+
+		while(1) {
+			clock_value = 1;
+			while (count++ < half_clock_cycle) {}
+			clock_value = 0;
+			while (count-- >= 0) {}
+			printf("t");
 		}
-		count++;
-		if ((count % 20) == 0) {
-			printf("\n");
-		}
-		// printf("A clock tick at time %d\n", count);
 	}
 }
 
 int main(int argc, char *argv[]) {
 	if (argc < 5) help();
 	
+	setbuf(stdout, NULL);
 	clk = atoi(argv[1]);
 	gnd = atoi(argv[2]);
 	mosi = atoi(argv[3]);
