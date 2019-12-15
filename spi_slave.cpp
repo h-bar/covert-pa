@@ -29,12 +29,8 @@ using namespace std;
 
 
 bitset<buffer_size> l(string(buffer_size, '0')), h(string(buffer_size, '1'));
-vector<set<char *>> e_sets;
-	
-atomic_flag ticking = ATOMIC_FLAG_INIT;
 
 int clk, gnd, mosi, miso;
-char **clk_addrs, **gnd_addrs, **mosi_addrs, **miso_addrs;
 
 
 
@@ -44,8 +40,6 @@ int sample(char ***e_addrs, int prev_v) {
 		// printf("%f -> %d: %s\n", rate, value, string((int)(rate*10), '=').c_str());
 		return value;
 }
-
-
 
 int monitor(set<char *> e_set, int index, int time) {
 	int timer = 0;
@@ -63,7 +57,7 @@ int monitor(set<char *> e_set, int index, int time) {
 	return 0;
 }
 
-int scan(int index) {
+int scan(vector<set<char *>> e_sets, int index) {
 	int slice = 0;
 	while(!monitor(e_sets[slice], index, scan_time)) {	
 		printf("Scanned slice %d\n", slice);
@@ -73,49 +67,41 @@ int scan(int index) {
 	return slice;
 }
 
-int clock_monitor(set<char *> e_set, int index) {
-	bitset<buffer_size> buffer(0);
+void init_wire_in(set<char *> e_set, int index, int* value) {
 	char **e_addrs = construct_addrs(e_set, index);
-
-	int prev_v = 0;
-	int value = 0;
 	while (1) {
-		buffer <<= 1;
-		buffer[0] = sample(&e_addrs, buffer[1]);
-
-		float rate = (float)(buffer.count()) / buffer_size;
-		value = rate > 0.2;
-		
-		if ((prev_v - value) == 1) {
-			ticking.clear();
-		}
-
-		prev_v = value;
+		*value = sample(&e_addrs, *value);
 	}
-
-	return 0;
 }
 
 int slave() {
-	e_sets = esets(0);
-	int slice = scan(clk);
+	vector<set<char *>> e_sets = esets(0);
+	int slice = scan(e_sets, clk);
 
 	printf("Clock signal found on slice %d\n", slice);
 	
-	clk_addrs = construct_addrs(e_sets[slice], clk);
-	gnd_addrs = construct_addrs(e_sets[slice], gnd);
-	mosi_addrs = construct_addrs(e_sets[slice], mosi);
-	miso_addrs = construct_addrs(e_sets[slice], miso);
 	
-	thread clockline_monitor (clock_monitor, e_sets[slice], clk);
+	int clock_value = 1;
+	thread clock_wire (init_wire_in, e_sets[slice], clk, &clock_value);
 	int count = 0;
-
 	while (1) {
-		while(ticking.test_and_set()) {
-		
+		bitset<buffer_size> buffer(0);
+
+		int prev_v = 0;
+		int value = 0;
+		while (1) {
+			buffer <<= 1;
+			buffer[0] = clock_value;
+
+			float rate = (float)(buffer.count()) / buffer_size;
+			value = rate > 0.2;
+			
+			if ((prev_v - value) == 1) {
+				printf("A clock tick at time %d\n", count++);
+			}
+
+			prev_v = value;
 		}
-		count++;
-		printf("A clock tick at time %d\n", count);
 	}
 }
 
