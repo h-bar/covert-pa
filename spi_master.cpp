@@ -8,6 +8,7 @@
 #include <bitset>
 #include <atomic> 
 #include <thread>
+#include <random>
 
 #include "prime.cpp"
 #include "eset.cpp"
@@ -69,23 +70,23 @@ int master() {
 	thread clock_generator (clocking, &clk_addrs);
 	int count = 0;
 
-	string sequence = "sfdsfsddsfsadsfsafsafd";
-	int nbits = sequence.length() * sizeof(char);
-	int pos = 0;
-	int value = 0;
+	int value;
 	char **e_addrs = mosi_addrs;
 	while (1) {
-		// value = (sequence[pos / sizeof(char)] & (1 << pos % sizeof(char)) == 0);
+		value = (rand()%10 > 5);
+		printf("%d", value);
 		while(ticking.test_and_set()) {
-		// 	if (value) {
-		// 		pull_down(&mosi_addrs);
-		// 	} else {
-		// 		pull_up();
-		// 	}
+			if (value) {
+				pull_down(&mosi_addrs);
+			} else {
+				pull_up();
+			}
 		}
-		// pos = (pos + 1) / nbits;
 		count++;
-		printf("A clock tick at time %d\n", count);
+		if ((count % 20) == 0) {
+			printf("\n");
+		}
+		// printf("A clock tick at time %d\n", count);
 	}
 }
 
