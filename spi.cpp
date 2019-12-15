@@ -15,10 +15,11 @@
 
 // #define clock_cycle 150	
 #define clock_cycle 150000000	
-#define _nways			12
+#define nway_in			12
+#define nway_out		2
 
 
-#define buffer_size 3
+#define buffer_size 1
 #define sample_size 10000
 #define scan_time   1000
 #define l_thre      0.05
@@ -30,7 +31,7 @@ int clk, ss, mosi, miso;
 
 
  int sample(char ***e_addrs, int prev_v, int nsample) {
-		float rate = prime_rate(e_addrs, _nways, nsample);
+		float rate = prime_rate(e_addrs, nway_in, nsample);
 		int value = rate >= l_thre;
 		return value;
 }
@@ -73,7 +74,7 @@ void init_wire_out(set<char *> eset, int index, int* value) {
 	int reading;
 	while(1) {
 		if (*value == 1) {
-			reading = sample(&e_addrs, reading, sample_size);
+			pa_prime(e_addrs, nway_out);
 		}
 	}
 }
@@ -135,18 +136,19 @@ int master() {
 	thread ss_wire(init_wire_in, e_set, ss, &ss_value);
 	
 	int count = 0;
+	int timer = 0;
 	int half_clock_cycle = clock_cycle / 2;
-	int timeout = 100;
+	int timeout = 4;
 	while (1) {
 		printf("Waiting for slave conntction\n");
 		clock_value = 1;
 		while(ss_value) {}
 
 		printf("Slave connected, sending message: ");
-		count = 0;
-		while(count < timeout) {
-			if (ss_value) count++;
-			else count == 0;
+		timer = 0;
+		while(timer < timeout) {
+			if (ss_value) timer++;
+			else timer = 0;
 			mosi_value = (rand() % 10 > 5);
 			printf("%d", mosi_value);
 			while (count++ < half_clock_cycle) {}
