@@ -8,9 +8,9 @@
 #define MIB (1024 * KIB)
 #define GIB (1024 * MIB)
 
-#define cache_size 	(16 * MIB)
+#define cache_size 	(12 * MIB)
 #define line_size		64 * B
-#define nways 			16
+#define nways 			12
 #define nslices 		16
 #define way_size 		(cache_size / nslices / nways)
 
