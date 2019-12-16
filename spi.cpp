@@ -38,30 +38,19 @@ int clk, ss, mosi, miso;
 		return try_prime(*e_addrs, nway_in, nsample) > threshold;
 }
 
-int monitor(set<char *> e_set, int index, int time) {
-	int timer = 0;
-	bitset<buffer_size> pattern(0);
-	char **e_addrs = construct_addrs(e_set, index);
-
-	while (timer < time || time == 0) {
-		pattern <<= 1;
-		pattern[0] = sample(&e_addrs, scan_sample_size, scan_threshold);
-
-		if (pattern == l) return 1;
-		timer++;
-	}
-
-	return 0;
-}
-
 int scan(vector<set<char *>> e_sets, int index) {
-	int slice = 0;
-	while(!monitor(e_sets[slice], index, scan_time)) {	
-		printf("Scanned slice %d\n", slice);
+	int slice = 0, timer = 0;
+	char **e_addrs;
+	while(1) {	
+		printf("Scanning slice %d\n", slice);
+		e_addrs = construct_addrs(e_sets[slice], index);
+		while (timer < scan_time) {
+			if (sample(&e_addrs, scan_sample_size, scan_threshold) == 0) return slice;
+			timer++;
+		}
+		timer = 0;
 		slice = (slice + 1) % e_sets.size();
 	}
-
-	return slice;
 }
 
 void init_wire_in(set<char *> e_set, int index, int nsample, int* value) {
