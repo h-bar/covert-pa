@@ -15,16 +15,16 @@
 #include "eset.cpp"
 
 // #define clock_cycle 150	
-#define clock_cycle 50000
-#define settle_time 2000000
+#define clock_cycle 1500
+#define settle_time 40000
 
 #define buffer_size 100
-#define buffer_threshold 30
+#define buffer_threshold 20
 
-#define sample_size 100
-#define sample_threshold 20
+#define sample_size 5
+#define sample_threshold 1
 
-#define nway_in			12
+#define nway_in			8
 #define nway_out		12
 
 
@@ -74,7 +74,7 @@ void init_wire_out(set<char *> eset, int index, int* value) {
 }
 
 int help() {
-	printf("usage: spi-master clk-index ss-index mosi-index miso-index\n");
+	printf("usage: spi [m|s] clk-index ss-index mosi-index\n");
 	exit(1);
 }
 
@@ -96,8 +96,8 @@ int slave() {
 	bitset<buffer_size> all_0(0);
 	bitset<buffer_size> all_1(0);
 	all_1.set();
-	thread mosi_wire (init_wire_in, e_sets[slice], mosi, sample_size, sample_threshold, &mosi_buffer);
-	thread ss_wire(init_wire_in, e_sets[slice], ss, sample_size, sample_threshold, &ss_buffer);
+	thread mosi_wire (init_wire_in, e_sets[slice], mosi, 10, 2, &mosi_buffer);
+	thread ss_wire(init_wire_in, e_sets[slice], ss, 3, 0, &ss_buffer);
 	
 	int count = 0;
 	int counter = 0;
@@ -149,7 +149,7 @@ int master() {
 	printf("Press enter to start transmission");
 	getchar();
 	unsigned long start_t = (unsigned long)time(NULL);
-	while (1) {
+	while (nbytes < 4096) {
 		ss_value = 0;
 		for (i = 0; i < 1; i++) {
 			data = ' ' + (rand() % 96);
@@ -180,7 +180,7 @@ int master() {
 }
 
 int main(int argc, char *argv[]) {
-	if (argc < 5) help();
+	if (argc != 5) help();
 	
 	setbuf(stdout, NULL);
 	clk = atoi(argv[2]);
