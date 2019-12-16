@@ -17,14 +17,16 @@
 #define clock_cycle 5000000
 #define buffer_size 1
 #define sample_size 50000
-
+#define wire_threshold 0
+#define clock_threshold 0
 
 #define nway_in			12
 #define nway_out		12
 
 
 #define scan_time   1000
-#define l_thre      0.05
+#define scan_sample_size 	100
+#define scan_threshold		0
 
 using namespace std;
 
@@ -32,8 +34,8 @@ bitset<buffer_size> l(string(buffer_size, '0')), h(string(buffer_size, '1'));
 int clk, ss, mosi, miso;
 
 
- int sample(char ***e_addrs, int prev_v, int nsample) {
-		return try_prime(*e_addrs, nway_in, nsample) > 0;
+ int sample(char ***e_addrs, int nsample, int threshold) {
+		return try_prime(*e_addrs, nway_in, nsample) > threshold;
 }
 
 int monitor(set<char *> e_set, int index, int time) {
@@ -43,7 +45,7 @@ int monitor(set<char *> e_set, int index, int time) {
 
 	while (timer < time || time == 0) {
 		pattern <<= 1;
-		pattern[0] = sample(&e_addrs, pattern[1], 100);
+		pattern[0] = sample(&e_addrs, scan_sample_size, scan_threshold);
 
 		if (pattern == l) return 1;
 		timer++;
@@ -65,7 +67,7 @@ int scan(vector<set<char *>> e_sets, int index) {
 void init_wire_in(set<char *> e_set, int index, int nsample, int* value) {
 	char **e_addrs = construct_addrs(e_set, index);
 	while (1) {
-		*value = sample(&e_addrs, *value, nsample);
+		*value = sample(&e_addrs, nsample, wire_threshold);
 	}
 }
 
@@ -110,7 +112,7 @@ int slave() {
 	while (1) {
 		while (clock_value == 0) {
 			clock_buffer <<= 1;
-			clock_buffer[0] = sample(&clk_addrs, clock_buffer[1], sample_size);
+			clock_buffer[0] = sample(&clk_addrs, sample_size, clock_threshold);
 			
 			clock_value = clock_buffer.count() == 0;
 
@@ -127,7 +129,7 @@ int slave() {
 
 		while (clock_value == 1) {
 			clock_buffer <<= 1;
-			clock_buffer[0] = sample(&clk_addrs, clock_buffer[1], sample_size);
+			clock_buffer[0] = sample(&clk_addrs, sample_size, clock_threshold);
 			clock_value = clock_buffer.count() == 0;
 
 			// printf("1");
