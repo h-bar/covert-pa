@@ -33,9 +33,7 @@ int clk, ss, mosi, miso;
 
 
  int sample(char ***e_addrs, int prev_v, int nsample) {
-		float rate = prime_rate(e_addrs, nway_in, nsample);
-		int value = rate >= l_thre;
-		return value;
+		return try_prime(*e_addrs, nway_in, nsample) > 0;
 }
 
 int monitor(set<char *> e_set, int index, int time) {
