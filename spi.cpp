@@ -15,14 +15,20 @@
 #include "eset.cpp"
 
 // #define clock_cycle 150	
-#define clock_cycle 1500
-#define settle_time 40000
+#define clock_cycle 15000
+#define sample_size_clk 10
+#define sample_threshold_clk 1
+#define sample_size_mosi 10
+#define sample_threshold_mosi 1
+
+#define settle_time 350000
+#define sample_size_ss 10
+#define sample_threshold_ss 1
+
 
 #define buffer_size 100
 #define buffer_threshold 20
 
-#define sample_size 5
-#define sample_threshold 1
 
 #define nway_in			8
 #define nway_out		12
@@ -32,6 +38,7 @@
 #define scan_sample_size 	100
 #define scan_threshold		5
 
+#define nbytes_to_send 738
 using namespace std;
 
 int clk, ss, mosi, miso;
@@ -79,59 +86,68 @@ int help() {
 }
 
 int slave() {
+	vector<set<char *>> e_sets = esets(0);
+	int slice = scan(e_sets, ss);
+
+	printf("Master signal found on slice %d\n", slice);
 	FILE *fp = fopen("../test/out.txt", "w");
 	if(fp == NULL) {
 		perror("Error in opening file");
 		return(-1);
 	} 
 
-	vector<set<char *>> e_sets = esets(0);
-	int slice = scan(e_sets, ss);
-
-	printf("Master signal found on slice %d\n", slice);
-	
 	bitset<buffer_size> mosi_buffer(0);
 	bitset<buffer_size> ss_buffer(0);
 	bitset<buffer_size> clk_buffer(0);
-	bitset<buffer_size> all_0(0);
-	bitset<buffer_size> all_1(0);
-	all_1.set();
-	thread mosi_wire (init_wire_in, e_sets[slice], mosi, 10, 2, &mosi_buffer);
-	thread ss_wire(init_wire_in, e_sets[slice], ss, 3, 0, &ss_buffer);
+
+	thread mosi_wire (init_wire_in, e_sets[slice], mosi, sample_size_mosi, sample_threshold_mosi, &mosi_buffer);
+	thread ss_wire(init_wire_in, e_sets[slice], ss, sample_size_ss, sample_threshold_ss, &ss_buffer);
 	
-	int count = 0;
+	int nbytes = 0;
 	int counter = 0;
 
 	char **clk_addrs = construct_addrs(e_sets[slice], clk);
 	
 	bitset<8> data_buffer(0);
-	int clock_value = 0;
-	int value_in = 0;
-	while (1) {
+	char data_recieved[nbytes_to_send];
+	while (nbytes < nbytes_to_send) {
 		while (ss_buffer.count() < buffer_size - buffer_threshold) {}
 		while (ss_buffer.count() > buffer_threshold) {
 			do {
 				clk_buffer <<= 1;
-				clk_buffer[0] = sample(&clk_addrs, sample_size, sample_threshold);
+				clk_buffer[0] = sample(&clk_addrs, sample_size_clk, sample_threshold_clk);
 			} while (clk_buffer.count() > buffer_threshold && ss_buffer.count() > buffer_threshold);
 
 			data_buffer[counter] = (mosi_buffer.count() < buffer_size - buffer_threshold);
 			counter ++;
 			do {
 				clk_buffer <<= 1;
-				clk_buffer[0] = sample(&clk_addrs, sample_size, sample_threshold);
+				clk_buffer[0] = sample(&clk_addrs, sample_size_clk, sample_threshold_clk);
 			} while (clk_buffer.count() < buffer_size - buffer_threshold && ss_buffer.count() > buffer_threshold);
 		}
-		// // fputc(data, fp);
-		// // fclose(fp);
-		printf("%c", (char)data_buffer.to_ulong());
+
+		data_recieved[nbytes] = (char)data_buffer.to_ulong();
+		printf("%c", data_recieved[nbytes]);
 		data_buffer.reset();
 		counter = 0;
+		nbytes++;
 	}
+	// printf("All data recieved\n");
+	// fprintf(fp, "%s", data_recieved);
+	// fflush(fp);
+	// fclose(fp);
+	// printf("%s\n", data_recieved);
+	while(1);
 }
 
 int master() {
   set<char *> e_set = esets(0)[0];
+	
+	FILE *fp = fopen("../test/file.txt", "r");
+	if(fp == NULL) {
+		perror("Error in opening file");
+		return(-1);
+	}
 
 	int mosi_value = 0;
 	int ss_value = 1;
@@ -143,16 +159,17 @@ int master() {
 	int count = 0;
 	int nbytes = 0;
 	char data = 0;
+	char data_sent[nbytes_to_send];
 	int half_clock_cycle = clock_cycle / 2;
 	int i, j;
 
 	printf("Press enter to start transmission");
 	getchar();
 	unsigned long start_t = (unsigned long)time(NULL);
-	while (nbytes < 4096) {
+	while (!feof(fp)) {
 		ss_value = 0;
 		for (i = 0; i < 1; i++) {
-			data = ' ' + (rand() % 96);
+			data = getc(fp);
 			for (j = 0; j < 8; j++) {
 				mosi_value = data & 1;
 				count = 0;
