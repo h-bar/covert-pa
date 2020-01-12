@@ -14,10 +14,20 @@
 #include "prime.cpp"
 #include "eset.cpp"
 
-// #define clock_cycle 150	
-#define clock_cycle 15000
+// #define clock_cycle 15000
+// #define sample_size_clk 500
+// #define sample_threshold_clk 50
+// #define buffer_size 10
+
+
+#define clock_cycle 100
 #define sample_size_clk 10
 #define sample_threshold_clk 1
+#define buffer_size 10
+
+
+
+
 #define sample_size_mosi 10
 #define sample_threshold_mosi 1
 
@@ -26,7 +36,7 @@
 #define sample_threshold_ss 1
 
 
-#define buffer_size 100
+// #define buffer_size 100
 #define buffer_threshold 20
 
 
@@ -108,7 +118,32 @@ int slave() {
 
 	char **clk_addrs = construct_addrs(e_sets[slice], clk);
 	
-	bitset<8> data_buffer(0);
+	bitset<1000> data_buffer(0);
+
+
+	int _count = 0;
+	while (1) {
+
+		do {
+			clk_buffer <<= 1;
+			clk_buffer[0] = sample(&clk_addrs, sample_size_clk, sample_threshold_clk);
+		} while (clk_buffer.count() == buffer_size);
+		printf("%d\n", ++_count);
+		// printf("%d", sample(&clk_addrs, sample_size_clk, sample_threshold_clk));
+		do {
+				clk_buffer <<= 1;
+				clk_buffer[0] = sample(&clk_addrs, sample_size_clk, sample_threshold_clk);
+			} while (clk_buffer.count() < buffer_size);
+	}
+
+
+
+
+
+
+
+
+
 	char data_recieved[nbytes_to_send];
 	while (nbytes < nbytes_to_send) {
 		while (ss_buffer.count() < buffer_size - buffer_threshold) {}
@@ -163,8 +198,37 @@ int master() {
 	int half_clock_cycle = clock_cycle / 2;
 	int i, j;
 
-	printf("Press enter to start transmission");
-	getchar();
+
+
+
+	
+
+	while(1) {
+		printf("Press enter to start transmission");
+		getchar();
+		
+
+		unsigned long start_t_ = (unsigned long)time(NULL);
+		int _counter = 0;
+		while (_counter < 500000) {
+			count = 0;
+			while (count ++ < half_clock_cycle) {
+				pa_prime(null_addrs, nway_out);
+			}
+			_counter ++;
+			count = 0;
+			while (count ++ < half_clock_cycle) {
+				pa_prime(clk_addrs, nway_out);
+			}
+		}
+		unsigned long end_t_ = (unsigned long)time(NULL);
+		printf("50000 cycles sent in %lu seconds -> %f sec\n", (end_t_ - start_t_), (float)(end_t_ - start_t_) / 50000);
+	}
+
+	while (1) {
+		pa_prime(clk_addrs, nway_out);
+	}
+
 	unsigned long start_t = (unsigned long)time(NULL);
 	while (!feof(fp)) {
 		ss_value = 0;
