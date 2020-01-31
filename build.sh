@@ -1,1 +1,1 @@
-g++ -o covert-pa -mrtm ../covert_pa.cpp
+g++ -o spi ../spi.cpp -mrtm -pthread
